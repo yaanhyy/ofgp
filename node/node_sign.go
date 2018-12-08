@@ -2,21 +2,18 @@ package node
 
 import (
 	"bytes"
-	"encoding/hex"
-	"eosc/eoswatcher"
-	"errors"
+	//"eosc/eoswatcher"
+	//"errors"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/btcsuite/btcd/wire"
-	"github.com/eoscanada/eos-go"
-	"github.com/eoscanada/eos-go/ecc"
 	btcwatcher "github.com/ofgp/bitcoinWatcher/mortgagewatcher"
 	"github.com/ofgp/ofgp-core/cluster"
 	pb "github.com/ofgp/ofgp-core/proto"
 	"github.com/ofgp/ofgp-core/util/assert"
-	context "golang.org/x/net/context"
+	"golang.org/x/net/context"
 )
 
 var signTimeout int64 //单位s
@@ -99,33 +96,33 @@ func (node *BraftNode) clearOnFail(signReq *pb.SignTxRequest) {
 }
 
 // sendEOSTxToChain send eos transaction to chain
-func (node *BraftNode) sendEOSTxToChain(watcher eoswatcher.EOSWatcherInterface,
-	sigs [][][]byte, req *pb.SignTxRequest, signRes *pb.SignedResult) (newTxID string, err error) {
-	var tmpSigs []*ecc.Signature
-	for _, sig := range sigs {
-		s := &ecc.Signature{}
-		s.UnmarshalJSON(sig[0])
-		tmpSigs = append(tmpSigs, s)
-	}
-	pack := &eos.PackedTransaction{
-		Compression:       0,
-		PackedTransaction: req.NewlyTx.Data,
-	}
-	transfer, _ := pack.Unpack()
-	newlyTx, err := watcher.MergeSignedTx(transfer, tmpSigs...)
-	if err != nil {
-		leaderLogger.Error("merge sign tx failed", "err", err, "sctxid", signRes.TxId)
-		node.clearOnFail(req)
-		err = errors.New("erge sign tx failed")
-		return
-	}
-	_, err = watcher.SendTx(newlyTx)
-	if err != nil {
-		leaderLogger.Error("send signed tx to eos failed", "err", err, "sctxid", signRes.TxId)
-	}
-	newlyTxHash := hex.EncodeToString(newlyTx.ID())
-	return newlyTxHash, nil
-}
+//func (node *BraftNode) sendEOSTxToChain(watcher eoswatcher.EOSWatcherInterface,
+//	sigs [][][]byte, req *pb.SignTxRequest, signRes *pb.SignedResult) (newTxID string, err error) {
+//	var tmpSigs []*ecc.Signature
+//	for _, sig := range sigs {
+//		s := &ecc.Signature{}
+//		s.UnmarshalJSON(sig[0])
+//		tmpSigs = append(tmpSigs, s)
+//	}
+//	pack := &eos.PackedTransaction{
+//		Compression:       0,
+//		PackedTransaction: req.NewlyTx.Data,
+//	}
+//	transfer, _ := pack.Unpack()
+//	newlyTx, err := watcher.MergeSignedTx(transfer, tmpSigs...)
+//	if err != nil {
+//		leaderLogger.Error("merge sign tx failed", "err", err, "sctxid", signRes.TxId)
+//		node.clearOnFail(req)
+//		err = errors.New("erge sign tx failed")
+//		return
+//	}
+//	_, err = watcher.SendTx(newlyTx)
+//	if err != nil {
+//		leaderLogger.Error("send signed tx to eos failed", "err", err, "sctxid", signRes.TxId)
+//	}
+//	newlyTxHash := hex.EncodeToString(newlyTx.ID())
+//	return newlyTxHash, nil
+//}
 
 func (node *BraftNode) sendBtcBchTxToChain(watcher *btcwatcher.MortgageWatcher, tx []byte,
 	sigs [][][]byte, req *pb.SignTxRequest, signRes *pb.SignedResult) (newTxID string, err error) {
@@ -167,13 +164,13 @@ func (node *BraftNode) sendTxToChain(chain string, tx []byte, sigs [][][]byte, s
 			leaderLogger.Error("send signed tx to btc failed", "err", err, "sctxid", signResult.TxId)
 		}
 		node.blockStore.SignedTxEvent.Emit(newlyTxHash, signResult.TxId, signResult.To, signReq.WatchedTx.TokenTo)
-	case "xin":
-
-		newlyTxHash, _ := node.sendEOSTxToChain(node.xinWatcher, sigs, signReq, signResult)
-		node.blockStore.SignedTxEvent.Emit(newlyTxHash, signResult.TxId, signResult.To, signReq.WatchedTx.TokenTo)
-	case "eos":
-		newlyTxHash, _ := node.sendEOSTxToChain(node.eosWatcher, sigs, signReq, signResult)
-		node.blockStore.SignedTxEvent.Emit(newlyTxHash, signResult.TxId, signResult.To, signReq.WatchedTx.TokenTo)
+	//case "xin":
+	//
+	//	newlyTxHash, _ := node.sendEOSTxToChain(node.xinWatcher, sigs, signReq, signResult)
+	//	node.blockStore.SignedTxEvent.Emit(newlyTxHash, signResult.TxId, signResult.To, signReq.WatchedTx.TokenTo)
+	//case "eos":
+	//	newlyTxHash, _ := node.sendEOSTxToChain(node.eosWatcher, sigs, signReq, signResult)
+	//	node.blockStore.SignedTxEvent.Emit(newlyTxHash, signResult.TxId, signResult.To, signReq.WatchedTx.TokenTo)
 	}
 }
 
@@ -330,68 +327,69 @@ func (node *BraftNode) verifySign(chain string, tx []byte, sig [][]byte, nodeID 
 			return false
 		}
 		return true
-	} else if chain == "xin" {
-		if len(tx) == 0 {
-			leaderLogger.Error("verify xin signtx tx is nil", "from", nodeID)
-			return false
-		}
-		pack := &eos.PackedTransaction{
-			Compression:       0,
-			PackedTransaction: tx,
-		}
-		transfer, err := pack.Unpack()
-		if err != nil {
-			leaderLogger.Error("verify xin signtx unpack failed", "from", nodeID, "err", err)
-			return false
-		}
-		xinSig := &ecc.Signature{}
-		err = xinSig.UnmarshalJSON(sig[0])
-		if err != nil {
-			leaderLogger.Error("verify xin signtx  Unmarshaljson failed", "from", nodeID, "err", err)
-			return false
-		}
-		pubkey, err := node.xinWatcher.GetPublickeyFromTx(transfer, xinSig)
-		if err != nil {
-			leaderLogger.Error("verify xin signtx getpubkey failed", "from", nodeID, "err", err)
-			return false
-		}
-		nodePubkey, err := node.xinWatcher.NewPublicKey(hex.EncodeToString(cluster.NodeList[nodeID].PublicKey))
-		if err != nil {
-			leaderLogger.Error("verify xin signtx getpubkeyfromnode failed", nodeID, "err", err)
-		}
-		isEqual := pubkey.String() == nodePubkey.String()
-		if !isEqual {
-			leaderLogger.Error("pubkey not equal", "txpubkey", pubkey.String(), "nodepubkey", nodePubkey.String())
-		}
-		return isEqual
-	} else if chain == "eos" {
-		pack := &eos.PackedTransaction{
-			Compression:       0,
-			PackedTransaction: tx,
-		}
-		transfer, err := pack.Unpack()
-		if err != nil {
-			leaderLogger.Error("verify eos signtx upack err", "from", nodeID, "err", err)
-			return false
-		}
-		xinSig := &ecc.Signature{}
-		err = xinSig.UnmarshalJSON(sig[0])
-		if err != nil {
-			leaderLogger.Error("verify eos signtx UnmarshalJson err", "from", nodeID, "err", err)
-			return false
-		}
-		pubkey, err := node.eosWatcher.GetPublickeyFromTx(transfer, xinSig)
-		if err != nil {
-			leaderLogger.Error("verify eos signtx getPubkey err", "from", nodeID, "err", err)
-			return false
-		}
-		nodePubkey, _ := node.eosWatcher.NewPublicKey(hex.EncodeToString(cluster.NodeList[nodeID].PublicKey))
-		isEqual := pubkey.String() == nodePubkey.String()
-		if !isEqual {
-			leaderLogger.Error("pubkey not equal", "txpubkey", pubkey.String(), "nodepubkey", nodePubkey.String())
-		}
-		return isEqual
 	}
+	//else if chain == "xin" {
+	//	if len(tx) == 0 {
+	//		leaderLogger.Error("verify xin signtx tx is nil", "from", nodeID)
+	//		return false
+	//	}
+	//	pack := &eos.PackedTransaction{
+	//		Compression:       0,
+	//		PackedTransaction: tx,
+	//	}
+	//	transfer, err := pack.Unpack()
+	//	if err != nil {
+	//		leaderLogger.Error("verify xin signtx unpack failed", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	xinSig := &ecc.Signature{}
+	//	err = xinSig.UnmarshalJSON(sig[0])
+	//	if err != nil {
+	//		leaderLogger.Error("verify xin signtx  Unmarshaljson failed", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	pubkey, err := node.xinWatcher.GetPublickeyFromTx(transfer, xinSig)
+	//	if err != nil {
+	//		leaderLogger.Error("verify xin signtx getpubkey failed", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	nodePubkey, err := node.xinWatcher.NewPublicKey(hex.EncodeToString(cluster.NodeList[nodeID].PublicKey))
+	//	if err != nil {
+	//		leaderLogger.Error("verify xin signtx getpubkeyfromnode failed", nodeID, "err", err)
+	//	}
+	//	isEqual := pubkey.String() == nodePubkey.String()
+	//	if !isEqual {
+	//		leaderLogger.Error("pubkey not equal", "txpubkey", pubkey.String(), "nodepubkey", nodePubkey.String())
+	//	}
+	//	return isEqual
+	//} else if chain == "eos" {
+	//	pack := &eos.PackedTransaction{
+	//		Compression:       0,
+	//		PackedTransaction: tx,
+	//	}
+	//	transfer, err := pack.Unpack()
+	//	if err != nil {
+	//		leaderLogger.Error("verify eos signtx upack err", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	xinSig := &ecc.Signature{}
+	//	err = xinSig.UnmarshalJSON(sig[0])
+	//	if err != nil {
+	//		leaderLogger.Error("verify eos signtx UnmarshalJson err", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	pubkey, err := node.eosWatcher.GetPublickeyFromTx(transfer, xinSig)
+	//	if err != nil {
+	//		leaderLogger.Error("verify eos signtx getPubkey err", "from", nodeID, "err", err)
+	//		return false
+	//	}
+	//	nodePubkey, _ := node.eosWatcher.NewPublicKey(hex.EncodeToString(cluster.NodeList[nodeID].PublicKey))
+	//	isEqual := pubkey.String() == nodePubkey.String()
+	//	if !isEqual {
+	//		leaderLogger.Error("pubkey not equal", "txpubkey", pubkey.String(), "nodepubkey", nodePubkey.String())
+	//	}
+	//	return isEqual
+	//}
 	return false
 }
 

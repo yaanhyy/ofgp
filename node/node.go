@@ -3,7 +3,7 @@ package node
 import (
 	"context"
 	"encoding/hex"
-	"eosc/eoswatcher"
+	//"eosc/eoswatcher"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -106,8 +106,8 @@ type BraftNode struct {
 	bchWatcher      *btcwatcher.MortgageWatcher
 	btcWatcher      *btcwatcher.MortgageWatcher
 	ethWatcher      *ew.Client
-	xinWatcher      *eoswatcher.EOSWatcher //xin chain is based on eos chain
-	eosWatcher      *eoswatcher.EOSWatcherMain
+	//xinWatcher      *eoswatcher.EOSWatcher //xin chain is based on eos chain
+	//eosWatcher      *eoswatcher.EOSWatcherMain
 	proposalManager *distribution.ProposalManager
 
 	syncDaemon           *SyncDaemon
@@ -180,8 +180,8 @@ func NewBraftNode(localNodeInfo cluster.NodeInfo) *BraftNode {
 		btcWatcher *btcwatcher.MortgageWatcher
 		bchWatcher *btcwatcher.MortgageWatcher
 		ethWatcher *ew.Client
-		xinWatcher *eoswatcher.EOSWatcher
-		eosWatcher *eoswatcher.EOSWatcherMain
+		//xinWatcher *eoswatcher.EOSWatcher
+		//eosWatcher *eoswatcher.EOSWatcherMain
 		err        error
 	)
 	if startMode != cluster.ModeWatch && startMode != cluster.ModeTest {
@@ -211,26 +211,26 @@ func NewBraftNode(localNodeInfo cluster.NodeInfo) *BraftNode {
 				panic(fmt.Sprintf("new eth watcher failed, err: %v", err))
 			}
 		}
-		xinURL := viper.GetString("DGW.xin_client_url")
-		localPubkeyHash := viper.GetString("KEYSTORE.local_pubkey_hash")
-		if len(xinURL) > 0 {
-			xinAccont := viper.GetString("DGW.xin_contract_account")
-			dbpath := viper.GetString("LEVELDB.eos_db_path")
-			xinWatcher = eoswatcher.NewEosWatcher(xinURL, localPubkeyHash,
-				xinAccont, "destroytoken", "createtoken", dbpath)
-		}
-		eosURL := viper.GetString("DGW.eos_client_url")
-		if len(eosURL) > 0 {
-			eosAccount := viper.GetString("DGW.eos_dgateway_account")
-			dbpath := viper.GetString("LEVELDB.eosmain_db_path")
-			eosWatcher = eoswatcher.NewEosWatcherMain(eosURL, localPubkeyHash, eosAccount, dbpath)
-		}
+		//xinURL := viper.GetString("DGW.xin_client_url")
+		//localPubkeyHash := viper.GetString("KEYSTORE.local_pubkey_hash")
+		//if len(xinURL) > 0 {
+		//	xinAccont := viper.GetString("DGW.xin_contract_account")
+		//	dbpath := viper.GetString("LEVELDB.eos_db_path")
+		//	xinWatcher = eoswatcher.NewEosWatcher(xinURL, localPubkeyHash,
+		//		xinAccont, "destroytoken", "createtoken", dbpath)
+		//}
+		//eosURL := viper.GetString("DGW.eos_client_url")
+		//if len(eosURL) > 0 {
+		//	eosAccount := viper.GetString("DGW.eos_dgateway_account")
+		//	dbpath := viper.GetString("LEVELDB.eosmain_db_path")
+		//	eosWatcher = eoswatcher.NewEosWatcherMain(eosURL, localPubkeyHash, eosAccount, dbpath)
+		//}
 	}
 
 	priceTool := price.NewPriceTool(viper.GetString("DGW.price_server"))
 	ts := primitives.NewTxStore(db)
 	proMgr := distribution.NewProposalManager(db, ts)
-	bs := primitives.NewBlockStore(db, ts, btcWatcher, bchWatcher, ethWatcher, xinWatcher, eosWatcher, priceTool,
+	bs := primitives.NewBlockStore(db, ts, btcWatcher, bchWatcher, ethWatcher, priceTool,
 		signer, localNodeInfo.Id)
 
 	//交易相关连接池大小
@@ -246,7 +246,7 @@ func NewBraftNode(localNodeInfo cluster.NodeInfo) *BraftNode {
 	pm := cluster.NewPeerManager(localNodeInfo.Id, txConnPoolSize, blockPoolSize)
 
 	ac := accuser.NewAccuser(localNodeInfo, signer, pm)
-	ld := NewLeader(localNodeInfo, bs, ts, signer, btcWatcher, bchWatcher, ethWatcher, xinWatcher, eosWatcher, priceTool, pm)
+	ld := NewLeader(localNodeInfo, bs, ts, signer, btcWatcher, bchWatcher, ethWatcher, priceTool, pm)
 	syncDaemon := NewSyncDaemon(db, bs, pm)
 
 	mintFeeRate := viper.GetInt64("BUS.mint_fee_rate")
@@ -268,8 +268,8 @@ func NewBraftNode(localNodeInfo cluster.NodeInfo) *BraftNode {
 		bchWatcher:           bchWatcher,
 		btcWatcher:           btcWatcher,
 		ethWatcher:           ethWatcher,
-		xinWatcher:           xinWatcher,
-		eosWatcher:           eosWatcher,
+		//xinWatcher:           xinWatcher,
+		//eosWatcher:           eosWatcher,
 		proposalManager:      proMgr,
 		syncDaemon:           syncDaemon,
 		mu:                   sync.Mutex{},
@@ -677,8 +677,8 @@ func (bn *BraftNode) watchNewTx(ctx context.Context) {
 		bchTxChan    <-chan *btcwatcher.SubTransaction
 		btcTxChan    <-chan *btcwatcher.SubTransaction
 		ethEventChan chan *ew.PushEvent
-		xinTxChan    chan *eoswatcher.EOSPushEvent
-		eosTxChan    chan *eoswatcher.EOSPushEvent
+		//xinTxChan    chan *eoswatcher.EOSPushEvent
+		//eosTxChan    chan *eoswatcher.EOSPushEvent
 	)
 
 	if bn.bchWatcher != nil {
@@ -702,24 +702,24 @@ func (bn *BraftNode) watchNewTx(ctx context.Context) {
 		bn.ethWatcher.StartWatch(*ethHeight, ethIndex, ethEventChan)
 	}
 
-	if bn.xinWatcher != nil {
-		xinTxChan = make(chan *eoswatcher.EOSPushEvent)
-		xinHeight := bn.blockStore.GetXINBlockHeight()
-		xinIndex := bn.blockStore.GetXINBlockTxIndex()
-		if xinHeight == 0 {
-			xinHeight = viper.GetInt64("DGW.xin_height")
-			xinIndex = viper.GetInt("DGW.xin_tran_idx")
-		}
-		nodeLogger.Debug("xinwatcher", "height", xinHeight, "index", xinIndex)
-		bn.xinWatcher.StartWatch(uint32(xinHeight), uint32(xinIndex), xinTxChan, 5)
-	}
-	if bn.eosWatcher != nil {
-		eosTxChan = make(chan *eoswatcher.EOSPushEvent)
-		eosHeight := viper.GetInt64("DGW.eos_height")
-		eosIndex := viper.GetInt("DGW.eos_tran_idx")
-		nodeLogger.Debug("eoswatcher", "height", eosHeight, "index", eosIndex)
-		bn.eosWatcher.StartWatch(uint32(eosHeight), uint32(eosIndex), eosTxChan, 5)
-	}
+	//if bn.xinWatcher != nil {
+	//	xinTxChan = make(chan *eoswatcher.EOSPushEvent)
+	//	xinHeight := bn.blockStore.GetXINBlockHeight()
+	//	xinIndex := bn.blockStore.GetXINBlockTxIndex()
+	//	if xinHeight == 0 {
+	//		xinHeight = viper.GetInt64("DGW.xin_height")
+	//		xinIndex = viper.GetInt("DGW.xin_tran_idx")
+	//	}
+	//	nodeLogger.Debug("xinwatcher", "height", xinHeight, "index", xinIndex)
+	//	bn.xinWatcher.StartWatch(uint32(xinHeight), uint32(xinIndex), xinTxChan, 5)
+	//}
+	//if bn.eosWatcher != nil {
+	//	eosTxChan = make(chan *eoswatcher.EOSPushEvent)
+	//	eosHeight := viper.GetInt64("DGW.eos_height")
+	//	eosIndex := viper.GetInt("DGW.eos_tran_idx")
+	//	nodeLogger.Debug("eoswatcher", "height", eosHeight, "index", eosIndex)
+	//	bn.eosWatcher.StartWatch(uint32(eosHeight), uint32(eosIndex), eosTxChan, 5)
+	//}
 
 	var watchedTx *pb.WatchedTxInfo
 	for {
@@ -751,10 +751,10 @@ func (bn *BraftNode) watchNewTx(ctx context.Context) {
 			watchedTx = pb.BtcToPbTx(tx)
 		case ev := <-ethEventChan:
 			bn.dealEthEvent(ev)
-		case ev := <-xinTxChan:
-			bn.dealXINEvent(ev)
-		case ev := <-eosTxChan:
-			bn.dealEOSEvent(ev)
+		//case ev := <-xinTxChan:
+		//	bn.dealXINEvent(ev)
+		//case ev := <-eosTxChan:
+		//	bn.dealEOSEvent(ev)
 		case <-ctx.Done():
 			return
 		}
@@ -815,25 +815,25 @@ func (bn *BraftNode) dealEthEvent(ev *ew.PushEvent) {
 	bn.blockStore.SetETHBlockTxIndex(ev.Tx.TxIndex)
 }
 
-func (bn *BraftNode) dealXINEvent(ev *eoswatcher.EOSPushEvent) {
-	nodeLogger.Debug("reiceve xin tx", "sctxid", ev.GetTxID())
-	watchedTx := pb.XINToPbTx(ev)
-	if watchedTx != nil {
-		bn.txStore.AddWatchedTx(watchedTx)
-	} else {
-		nodeLogger.Debug("create watched tx failed", "tx", ev.GetTxID())
-	}
-}
-
-func (bn *BraftNode) dealEOSEvent(ev *eoswatcher.EOSPushEvent) {
-	nodeLogger.Debug("reiceve eos tx", "sctxid", ev.GetTxID())
-	watchedTx := pb.EOSToPbTx(ev)
-	if watchedTx != nil {
-		bn.txStore.AddWatchedTx(watchedTx)
-	} else {
-		nodeLogger.Debug("create watched tx failed", "tx", ev.GetTxID())
-	}
-}
+//func (bn *BraftNode) dealXINEvent(ev *eoswatcher.EOSPushEvent) {
+//	nodeLogger.Debug("reiceve xin tx", "sctxid", ev.GetTxID())
+//	watchedTx := pb.XINToPbTx(ev)
+//	if watchedTx != nil {
+//		bn.txStore.AddWatchedTx(watchedTx)
+//	} else {
+//		nodeLogger.Debug("create watched tx failed", "tx", ev.GetTxID())
+//	}
+//}
+//
+//func (bn *BraftNode) dealEOSEvent(ev *eoswatcher.EOSPushEvent) {
+//	nodeLogger.Debug("reiceve eos tx", "sctxid", ev.GetTxID())
+//	watchedTx := pb.EOSToPbTx(ev)
+//	if watchedTx != nil {
+//		bn.txStore.AddWatchedTx(watchedTx)
+//	} else {
+//		nodeLogger.Debug("create watched tx failed", "tx", ev.GetTxID())
+//	}
+//}
 
 func (bn *BraftNode) dealWaitingChan(ctx context.Context) {
 	for {
@@ -932,33 +932,34 @@ func (bn *BraftNode) checkTxOnChain(tx *waitingConfirmTx, wg *sync.WaitGroup) {
 				}
 			}
 		}
-	} else if tx.chainType == "xin" {
-		nodeLogger.Debug("begin filter xin tx", "sctxid", tx.msgId)
-		chainTx, _ := bn.xinWatcher.GetEventByTxid(tx.chainTxId)
-		if chainTx != nil {
-			if !tx.inMem {
-				tx.setInMem()
-			}
-			nodeLogger.Debug("xin block height", "lastirr", bn.xinWatcher.LastIrreversibleBlockNum, "txheight", chainTx.GetHeight())
-			if int64(bn.xinWatcher.LastIrreversibleBlockNum) >= chainTx.GetHeight() {
-				bn.txStore.CreateInnerTx(tx.chainTxId, tx.msgId, 0)
-				bn.deleteFromWaiting(tx.msgId)
-			}
-		}
-	} else if tx.chainType == "eos" {
-		nodeLogger.Debug("begin filter eos tx", "sctxid", tx.msgId)
-		chainTx, _ := bn.eosWatcher.GetEventByTxid(tx.chainTxId)
-		if chainTx != nil {
-			if !tx.inMem {
-				tx.setInMem()
-			}
-			nodeLogger.Debug("eos block height", "lastirr", bn.xinWatcher.LastIrreversibleBlockNum, "txheight", chainTx.GetHeight())
-			if int64(bn.eosWatcher.LastIrreversibleBlockNum) >= chainTx.GetHeight() {
-				bn.txStore.CreateInnerTx(tx.chainTxId, tx.msgId, 0)
-				bn.deleteFromWaiting(tx.msgId)
-			}
-		}
 	}
+	//else if tx.chainType == "xin" {
+	//	nodeLogger.Debug("begin filter xin tx", "sctxid", tx.msgId)
+	//	chainTx, _ := bn.xinWatcher.GetEventByTxid(tx.chainTxId)
+	//	if chainTx != nil {
+	//		if !tx.inMem {
+	//			tx.setInMem()
+	//		}
+	//		nodeLogger.Debug("xin block height", "lastirr", bn.xinWatcher.LastIrreversibleBlockNum, "txheight", chainTx.GetHeight())
+	//		if int64(bn.xinWatcher.LastIrreversibleBlockNum) >= chainTx.GetHeight() {
+	//			bn.txStore.CreateInnerTx(tx.chainTxId, tx.msgId, 0)
+	//			bn.deleteFromWaiting(tx.msgId)
+	//		}
+	//	}
+	//} else if tx.chainType == "eos" {
+	//	nodeLogger.Debug("begin filter eos tx", "sctxid", tx.msgId)
+	//	chainTx, _ := bn.eosWatcher.GetEventByTxid(tx.chainTxId)
+	//	if chainTx != nil {
+	//		if !tx.inMem {
+	//			tx.setInMem()
+	//		}
+	//		nodeLogger.Debug("eos block height", "lastirr", bn.xinWatcher.LastIrreversibleBlockNum, "txheight", chainTx.GetHeight())
+	//		if int64(bn.eosWatcher.LastIrreversibleBlockNum) >= chainTx.GetHeight() {
+	//			bn.txStore.CreateInnerTx(tx.chainTxId, tx.msgId, 0)
+	//			bn.deleteFromWaiting(tx.msgId)
+	//		}
+	//	}
+	//}
 }
 
 func (bn *BraftNode) getWaitingTxCh() (<-chan *waitingConfirmTx, int) {

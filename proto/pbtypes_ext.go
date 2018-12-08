@@ -1,8 +1,7 @@
 package proto
 
 import (
-	"encoding/json"
-	"eosc/eoswatcher"
+	//"eosc/eoswatcher"
 	"fmt"
 	"log"
 	"regexp"
@@ -951,50 +950,50 @@ type eosMemo struct {
 }
 
 // XINToPbTx XIN链监听到的交易转pb结构
-func XINToPbTx(tx *eoswatcher.EOSPushEvent) *WatchedTxInfo {
-	if tx.GetAmount() <= 0 {
-		log.Printf("xin to pbtx amount <=0 amount:%d\n", tx.GetAmount())
-		return nil
-	}
-	memo := &eosMemo{}
-	err := json.Unmarshal(tx.GetData(), memo)
-	if err != nil {
-		log.Printf("unmarshal memo err:%v,data:%s\n", err, tx.GetData())
-		return nil
-	}
-	if memo.Chain != "btc" && memo.Chain != "bch" && memo.Chain != "eos" {
-		log.Printf("xin chain type err chain:%s\n", memo.Chain)
-		return nil
-	}
-	if memo.Chain == "btc" || memo.Chain == "bch" {
-		_, err = coinmanager.DecodeAddress(memo.Address, memo.Chain)
-		if err != nil {
-			log.Printf("xin decode adrr err:%v,addr:%s,chain:%s\n", err, memo.Address, memo.Chain)
-			return nil
-		}
-	}
-	if memo.Chain == "eos" {
-		if !checkEOSAddr(memo.Address) {
-			log.Printf("eosEvent addr wrong addr:%s", memo.Address)
-			return nil
-		}
-	}
-
-	watchedTx := &WatchedTxInfo{
-		Txid:      tx.GetTxID(),
-		Amount:    int64(tx.GetAmount()),
-		From:      "xin",
-		To:        memo.Chain,
-		TokenFrom: 1,
-		TokenTo:   0,
-		Fee:       0,
-	}
-	watchedTx.RechargeList = append(watchedTx.RechargeList, &AddressInfo{
-		Amount:  int64(tx.GetAmount()),
-		Address: memo.Address,
-	})
-	return watchedTx
-}
+//func XINToPbTx(tx *eoswatcher.EOSPushEvent) *WatchedTxInfo {
+//	if tx.GetAmount() <= 0 {
+//		log.Printf("xin to pbtx amount <=0 amount:%d\n", tx.GetAmount())
+//		return nil
+//	}
+//	memo := &eosMemo{}
+//	err := json.Unmarshal(tx.GetData(), memo)
+//	if err != nil {
+//		log.Printf("unmarshal memo err:%v,data:%s\n", err, tx.GetData())
+//		return nil
+//	}
+//	if memo.Chain != "btc" && memo.Chain != "bch" && memo.Chain != "eos" {
+//		log.Printf("xin chain type err chain:%s\n", memo.Chain)
+//		return nil
+//	}
+//	if memo.Chain == "btc" || memo.Chain == "bch" {
+//		_, err = coinmanager.DecodeAddress(memo.Address, memo.Chain)
+//		if err != nil {
+//			log.Printf("xin decode adrr err:%v,addr:%s,chain:%s\n", err, memo.Address, memo.Chain)
+//			return nil
+//		}
+//	}
+//	if memo.Chain == "eos" {
+//		if !checkEOSAddr(memo.Address) {
+//			log.Printf("eosEvent addr wrong addr:%s", memo.Address)
+//			return nil
+//		}
+//	}
+//
+//	watchedTx := &WatchedTxInfo{
+//		Txid:      tx.GetTxID(),
+//		Amount:    int64(tx.GetAmount()),
+//		From:      "xin",
+//		To:        memo.Chain,
+//		TokenFrom: 1,
+//		TokenTo:   0,
+//		Fee:       0,
+//	}
+//	watchedTx.RechargeList = append(watchedTx.RechargeList, &AddressInfo{
+//		Amount:  int64(tx.GetAmount()),
+//		Address: memo.Address,
+//	})
+//	return watchedTx
+//}
 
 func checkEOSAddr(addr string) bool {
 	reg := regexp.MustCompile(`^[a-z1-5.]{1,12}$`)
@@ -1005,40 +1004,40 @@ func checkEOSAddr(addr string) bool {
 }
 
 // EOSToPbTx eosEvent->watchedInfo
-func EOSToPbTx(event *eoswatcher.EOSPushEvent) *WatchedTxInfo {
-	if event.GetAmount() <= 0 {
-		log.Printf("eos to pbtx amount<=0 amount:%d\n", event.GetAmount())
-		return nil
-	}
-	memo := &eosMemo{}
-	err := json.Unmarshal(event.GetData(), memo)
-	if err != nil {
-		log.Printf("unmarshal memo err:%v,data:%s\n", err, event.GetData())
-		return nil
-	}
-	if memo.Chain != "xin" {
-		log.Printf("eos chain type err chain:%s\n", memo.Chain)
-		return nil
-	}
-	if !checkEOSAddr(memo.Address) {
-		log.Printf("eosEvent addr wrong addr:%s", memo.Address)
-		return nil
-	}
-	watchedTx := &WatchedTxInfo{
-		Txid:      event.GetTxID(),
-		Amount:    int64(event.GetAmount()),
-		From:      "eos",
-		To:        memo.Chain,
-		TokenFrom: 1,
-		TokenTo:   0,
-		Fee:       0,
-	}
-	watchedTx.RechargeList = append(watchedTx.RechargeList, &AddressInfo{
-		Amount:  int64(event.GetAmount()),
-		Address: memo.Address,
-	})
-	return watchedTx
-}
+//func EOSToPbTx(event *eoswatcher.EOSPushEvent) *WatchedTxInfo {
+//	if event.GetAmount() <= 0 {
+//		log.Printf("eos to pbtx amount<=0 amount:%d\n", event.GetAmount())
+//		return nil
+//	}
+//	memo := &eosMemo{}
+//	err := json.Unmarshal(event.GetData(), memo)
+//	if err != nil {
+//		log.Printf("unmarshal memo err:%v,data:%s\n", err, event.GetData())
+//		return nil
+//	}
+//	if memo.Chain != "xin" {
+//		log.Printf("eos chain type err chain:%s\n", memo.Chain)
+//		return nil
+//	}
+//	if !checkEOSAddr(memo.Address) {
+//		log.Printf("eosEvent addr wrong addr:%s", memo.Address)
+//		return nil
+//	}
+//	watchedTx := &WatchedTxInfo{
+//		Txid:      event.GetTxID(),
+//		Amount:    int64(event.GetAmount()),
+//		From:      "eos",
+//		To:        memo.Chain,
+//		TokenFrom: 1,
+//		TokenTo:   0,
+//		Fee:       0,
+//	}
+//	watchedTx.RechargeList = append(watchedTx.RechargeList, &AddressInfo{
+//		Amount:  int64(event.GetAmount()),
+//		Address: memo.Address,
+//	})
+//	return watchedTx
+//}
 
 // IsTransferTx 判断WatchedTxInfo是否是一个多签地址的资产转移的交易
 func (tx *WatchedTxInfo) IsTransferTx() bool {
