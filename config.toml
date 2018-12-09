@@ -18,9 +18,9 @@ coinbase_confirm_block_num = 100
 
 
 [LEVELDB]
-btc_db_path = "/Users/user/leveldb_data/btc_tx_db"
-bch_db_path = "/Users/user/leveldb_data/bch_tx_db"
-ew_nonce_db_path = "/Users/user/leveldb_data/ew_tx_db"
+btc_db_path = "/home/yaanhyy/ofgp_data/leveldb_data/btc_tx_db"
+bch_db_path = "/home/yaanhyy/ofgp_data/leveldb_data/bch_tx_db"
+ew_nonce_db_path = "/home/yaanhyy/ofgp_data/leveldb_data/ew_tx_db"
 eos_db_path = ""
 [KEYSTORE]
 url = "http://127.0.0.1:8976"
@@ -56,8 +56,8 @@ new_node_pubkey = "049FD6230E3BADBBC7BA190E10B2FC5C3D8EA9B758A43E98AB2C8F83C826A
 bch_height = 1000000
 btc_height = 1000000
 eth_height = 10000000
-dbpath = "/Users/user/leveldb_data/node0/dgateway"
-eth_client_url = "ws://127.0.0.1:8830"
+dbpath = "/home/yaanhyy/ofgp_data/leveldb_data/node0/dgateway"
+eth_client_url = "ws://127.0.0.1:8546"
 eos_dgateway_account = ""
 
 # start_mode指定节点的启动方式，1是正常启动，利用配置文件里面的节点信息建立网关集群，2是加入已有网关集群, 3是以观察节点的方式启动
